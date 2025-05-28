@@ -10,6 +10,8 @@ import org.bukkit.entity.ArmorStand
 import org.bukkit.entity.Player
 import org.bukkit.util.Vector
 import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.sin
 
 class Traveler(private val plugin: UFastTravel, private val player: Player, private val travelData: TravelData) {
     private val movePoints = mutableListOf<Vector>()
@@ -19,6 +21,11 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
     private val closeEnough: Double = 0.05
     val entity: ArmorStand
     private var currentSpeed: Double = baseSpeed
+    private val originalSegmentDistances = mutableListOf<Double>()
+    private var currentSegmentIndex = 0
+    private var segmentProgress = 0.0
+    private val segmentStartIndices = mutableListOf<Int>()
+    private var currentYaw: Float = 0f
 
     init {
         val firstPoint = travelData.points.firstOrNull() ?: Vector()
@@ -33,8 +40,43 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
             setGravity(false)
             addPassenger(player)
         }
+        currentYaw = entity.location.yaw
 
+        calculateOriginalDistances()
         generateSmoothedPath()
+    }
+
+    private fun calculateYaw(direction: Vector): Float {
+        val x = direction.x
+        val z = direction.z
+        var newYaw = Math.toDegrees(-Math.atan2(x, z)).toFloat()
+
+        // Smooth transition between current and new yaw
+        val angleDiff = ((((newYaw - currentYaw) % 360) + 540) % 360 - 180)
+        currentYaw = (currentYaw + angleDiff * 0.2f) % 360
+
+        return currentYaw
+    }
+
+    private fun calculateOriginalDistances() {
+        originalSegmentDistances.clear()
+        val path = travelData.points
+        if (path.size < 2) return
+
+        for (i in 0 until path.size - 1) {
+            val distance = path[i].distance(path[i + 1])
+            originalSegmentDistances.add(distance)
+        }
+    }
+
+    private fun getSpeedForDistance(distance: Double): Double {
+        // Adjust these values to your liking
+        return when {
+            distance < 10 -> baseSpeed
+            distance < 30 -> baseSpeed * 2.0
+            distance < 50 -> baseSpeed * 3.0
+            else -> baseSpeed * 4.0
+        }
     }
 
     private fun generateSmoothedPath() {
@@ -42,17 +84,28 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
         if (path.size < 2) return
 
         movePoints.clear()
-
+        segmentStartIndices.clear()
         movePoints.add(path[0])
+        segmentStartIndices.add(0)
 
         for (i in 0 until path.size - 1) {
             val start = path[i]
             val end = path[i + 1]
+            val segmentDistance = originalSegmentDistances[i]
 
-            val control1 = calculateControlPoint(start, end, 0.33, heightOffset = 3.0)
-            val control2 = calculateControlPoint(start, end, 0.66, heightOffset = 3.0)
+            val heightOffset = when {
+                segmentDistance < 10 -> 1.5
+                segmentDistance < 30 -> 2.5
+                else -> 3.5
+            }
 
-            generateCubicBezierPoints(start, control1, control2, end, segments = 15)
+            val control1 = calculateControlPoint(start, end, 0.33, heightOffset)
+            val control2 = calculateControlPoint(start, end, 0.66, heightOffset)
+
+            val segments = max(10, min(30, (segmentDistance / 2).toInt()))
+            generateCubicBezierPoints(start, control1, control2, end, segments)
+
+            segmentStartIndices.add(movePoints.size)
         }
 
         movePoints.add(path.last())
@@ -88,27 +141,60 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
         return point
     }
 
+    private fun updateSegmentTracking() {
+        if (segmentStartIndices.size < 2) return
+
+        for (i in segmentStartIndices.indices.reversed()) {
+            if (currentTargetIndex >= segmentStartIndices[i]) {
+                currentSegmentIndex = min(i, segmentStartIndices.size - 2)
+                val segmentStart = segmentStartIndices[currentSegmentIndex]
+                val segmentEnd = if (currentSegmentIndex + 1 < segmentStartIndices.size) {
+                    segmentStartIndices[currentSegmentIndex + 1]
+                } else {
+                    movePoints.size - 1
+                }
+                segmentProgress = (currentTargetIndex - segmentStart).toDouble() / (segmentEnd - segmentStart).toDouble()
+                break
+            }
+        }
+    }
+
+    private fun getDynamicSpeed(segmentDistance: Double, progress: Double): Double {
+        val baseSpeed = getSpeedForDistance(segmentDistance)
+
+        // Smooth acceleration/deceleration curve
+        val progressFactor = sin(progress * Math.PI).toFloat()
+        return baseSpeed * (0.5 + progressFactor * 0.5)
+    }
+
     fun start(reversed: Boolean) {
         if (taskId != -1 || movePoints.isEmpty()) return
-        var title: Title?
-        if (reversed)
-            title = Title.title(Component.text("Traveling to ${travelData.from}"), Component.text(travelData.message))
-        else
-            title = Title.title(Component.text("Traveling to ${travelData.to}"), Component.text(travelData.message))
-        player.showTitle(title)
-        if (!plugin.playersMounted.contains(player.uniqueId))
-            plugin.playersMounted.set(player.uniqueId, entity)
 
-        if (!plugin.entities.contains(entity))
+        val title = if (reversed) {
+            Title.title(
+                Component.text("Traveling to ${travelData.from}"),
+                Component.text(travelData.message)
+            )
+        } else {
+            Title.title(
+                Component.text("Traveling to ${travelData.to}"),
+                Component.text(travelData.message)
+            )
+        }
+
+        player.showTitle(title)
+
+        if (!plugin.playersMounted.contains(player.uniqueId)) {
+            plugin.playersMounted.set(player.uniqueId, entity)
+        }
+
+        if (!plugin.entities.contains(entity)) {
             plugin.entities.add(entity)
+        }
 
         taskId = Bukkit.getScheduler().scheduleSyncRepeatingTask(plugin, {
             if (entity.isDead || !entity.isValid) {
                 stop()
-                return@scheduleSyncRepeatingTask
-            }
-            if (entity.passengers.isEmpty()) {
-                remove()
                 return@scheduleSyncRepeatingTask
             }
 
@@ -118,18 +204,35 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
             val distance = direction.length()
 
             if (distance > closeEnough) {
-                currentSpeed = baseSpeed
+                updateSegmentTracking()
 
+                val segmentDistance = if (currentSegmentIndex < originalSegmentDistances.size) {
+                    originalSegmentDistances[currentSegmentIndex]
+                } else {
+                    originalSegmentDistances.lastOrNull() ?: 0.0
+                }
+
+                currentSpeed = getDynamicSpeed(segmentDistance, segmentProgress)
                 val moveDistance = minOf(distance, currentSpeed)
                 val velocity = direction.normalize().multiply(moveDistance)
 
-                entity.teleport(entity.location.add(velocity), TeleportFlag.EntityState.RETAIN_PASSENGERS)
+                val newLocation = entity.location.add(velocity)
+                newLocation.yaw = calculateYaw(direction)
+
+                entity.teleport(
+                    newLocation,
+                    TeleportFlag.EntityState.RETAIN_PASSENGERS
+                )
             } else {
                 currentTargetIndex++
                 if (currentTargetIndex >= movePoints.size) {
                     remove()
                     return@scheduleSyncRepeatingTask
                 }
+            }
+
+            if (entity.passengers.isEmpty()) {
+                entity.addPassenger(player)
             }
         }, 0L, 1L)
     }
@@ -138,14 +241,18 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
         if (taskId != -1) {
             Bukkit.getScheduler().cancelTask(taskId)
             taskId = -1
-            if (plugin.playersMounted.contains(player.uniqueId))
+            if (plugin.playersMounted.contains(player.uniqueId)) {
                 plugin.playersMounted.remove(player.uniqueId)
+            }
         }
     }
 
     fun remove() {
         stop()
         entity.remove()
+        if (plugin.entities.contains(entity)) {
+            plugin.entities.remove(entity)
+        }
     }
 }
 

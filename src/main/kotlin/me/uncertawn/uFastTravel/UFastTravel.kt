@@ -1,10 +1,11 @@
 /*
 TODO:
-Make existing commands make sense maybe add tab completion
+maybe Make existing commands make sense maybe add tab completion
 
-rotate armor stand in the path direction for better third person view
 /editpoint [path name] [index] [remove]
 /removepath [pathname]
+
+save player that started traveling in the config file so that when they rejoin they get tp'd to the start without loosing money
  */
 package me.uncertawn.uFastTravel
 
@@ -23,6 +24,7 @@ import java.util.UUID
 class UFastTravel : JavaPlugin() {
     var playersMounted: HashMap<UUID, Entity> = HashMap()
     var entities: MutableList<Entity> = mutableListOf()
+    var playerTravellingPath: HashMap<UUID, String> = HashMap()
 
     var taskId = -1
     override fun onEnable() {
