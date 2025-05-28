@@ -2,8 +2,10 @@
 TODO:
 maybe Make existing commands make sense maybe add tab completion
 
-/editpoint [path name] [index] [remove]
+
 /removepath [pathname]
+
+sometimes the Path Follower does not start following path
 
 save player that started traveling in the config file so that when they rejoin they get tp'd to the start without loosing money
  */

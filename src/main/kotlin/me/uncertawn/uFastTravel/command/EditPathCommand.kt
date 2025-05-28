@@ -40,6 +40,11 @@ class EditPathCommand(val plugin: Plugin) : CommandExecutor {
                     sender.sendMessage("$resultVector")
                     travelData!!.points[args[2].toInt()] = resultVector
                 }
+                else if (args[1].equals("removepoint")) {
+                    var temp: MutableList<Vector> = travelData!!.points.toMutableList()
+                    temp.removeAt(args[2].toInt())
+                    travelData!!.points = temp.toTypedArray()
+                }
                 else if (args[1].equals("from") || args[1].equals("to")) {
                     var message = ""
                     args.forEachIndexed { index, it ->

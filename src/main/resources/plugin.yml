@@ -14,7 +14,7 @@ commands:
     permission-message: "You do not have the permission to perform this command!"
   editpath:
     description: "Edit path for 'fast travel' "
-    usage: /editpath [path name] [addpoint/editpoint/message] [<x> <y> <z>/pointindex/message] [(if editing point)<x> <y> <z>]
+    usage: /editpath [path name] [addpoint/editpoint/removepoint/message] [<x> <y> <z>/pointindex/pointindex/message] [(if editing point)<x> <y> <z>]
     permission: ufasttravel.editpath
     permission-message: "You do not have the permission to perform this command!"
   debugpath:

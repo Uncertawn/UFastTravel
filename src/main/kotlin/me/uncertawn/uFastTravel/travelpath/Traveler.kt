@@ -73,7 +73,7 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
             distance < 10 -> baseSpeed
             distance < 30 -> baseSpeed * 2.0
             distance < 50 -> baseSpeed * 3.0
-            else -> baseSpeed * 4.0
+            else -> baseSpeed * 3.5
         }
     }
 
