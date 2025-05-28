@@ -1,0 +1,39 @@
+name: UFastTravel
+version: '0.0-SNAPSHOT'
+main: me.uncertawn.uFastTravel.UFastTravel
+api-version: '1.21.4'
+prefix: UFastTravel
+authors: [ Uncertawn ]
+website: https://uncertawn.art
+
+commands:
+  createpath:
+    description: "Create a path for 'fast travel' "
+    usage: /createpath [name]
+    permission: ufasttravel.createpath
+    permission-message: "You do not have the permission to perform this command!"
+  editpath:
+    description: "Edit path for 'fast travel' "
+    usage: /editpath [path name] [addpoint/editpoint/message] [<x> <y> <z>/pointindex/message] [(if editing point)<x> <y> <z>]
+    permission: ufasttravel.editpath
+    permission-message: "You do not have the permission to perform this command!"
+  debugpath:
+    description: "Shows the path and the indexes of each point on the path"
+    usage: /debugpath [path name]
+    permission: ufasttravel.createpath
+    permission-message: "You do not have the permission to perform this command!"
+  starttravel:
+    description: "Pick a path to travel!"
+    usage: /starttravel [player] [path name] [travel in reverse (true|false)]
+    permission: ufasttravel.starttravel
+    permission-message: "You do not have the permission to perform this command!"
+  pathlist:
+    description: "Get a list of existing paths on the server"
+    usage: /pathlist
+    permission: ufasttravel.starttravel
+    permission-message: "You do not have the permission to perform this command!"
+  tptopointinpath:
+    description: "Helpful for debugging"
+    usage: /tptopointinpath [path name] [point index]
+    permission: ufasttravel.tptopointinpath
+    permission-message: "You do not have the permission to perform this command!"
