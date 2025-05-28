@@ -51,7 +51,6 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
         val z = direction.z
         var newYaw = Math.toDegrees(-Math.atan2(x, z)).toFloat()
 
-        // Smooth transition between current and new yaw
         val angleDiff = ((((newYaw - currentYaw) % 360) + 540) % 360 - 180)
         currentYaw = (currentYaw + angleDiff * 0.2f) % 360
 
@@ -70,7 +69,6 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
     }
 
     private fun getSpeedForDistance(distance: Double): Double {
-        // Adjust these values to your liking
         return when {
             distance < 10 -> baseSpeed
             distance < 30 -> baseSpeed * 2.0
@@ -162,7 +160,6 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
     private fun getDynamicSpeed(segmentDistance: Double, progress: Double): Double {
         val baseSpeed = getSpeedForDistance(segmentDistance)
 
-        // Smooth acceleration/deceleration curve
         val progressFactor = sin(progress * Math.PI).toFloat()
         return baseSpeed * (0.5 + progressFactor * 0.5)
     }
