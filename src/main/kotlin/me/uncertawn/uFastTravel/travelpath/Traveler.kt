@@ -253,6 +253,7 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
     }
 }
 
+
 // i am unsure which i wanna use but i think i am done with this class and have the bottom comment just in case
 /*
 class Traveler(private val plugin: Plugin, private val player: Player, private val travelData: TravelData) {
