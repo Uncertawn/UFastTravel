@@ -5,6 +5,7 @@ api-version: '1.21.4'
 prefix: UFastTravel
 authors: [ Uncertawn ]
 website: https://uncertawn.art
+depend: [ModelEngine]
 
 commands:
   createpath:
@@ -36,4 +37,9 @@ commands:
     description: "Helpful for debugging"
     usage: /tptopointinpath [path name] [point index]
     permission: ufasttravel.tptopointinpath
+    permission-message: "You do not have the permission to perform this command!"
+  displayblimp:
+    description: "Summon a display blimp"
+    usage: /displayblimp
+    permission: ufasttravel.displayblimp
     permission-message: "You do not have the permission to perform this command!"

@@ -1,5 +1,10 @@
 package me.uncertawn.uFastTravel.travelpath
 
+import com.ticxo.modelengine.api.ModelEngineAPI
+import com.ticxo.modelengine.api.entity.BaseEntity
+import com.ticxo.modelengine.api.generator.blueprint.ModelBlueprint
+import com.ticxo.modelengine.api.model.ActiveModel
+import com.ticxo.modelengine.api.model.ModeledEntity
 import io.papermc.paper.entity.TeleportFlag
 import me.uncertawn.uFastTravel.UFastTravel
 import me.uncertawn.uFastTravel.data.TravelData
@@ -20,6 +25,7 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
     private val baseSpeed: Double = 1.0
     private val closeEnough: Double = 0.05
     val entity: ArmorStand
+    val blimp: ArmorStand
     private var currentSpeed: Double = baseSpeed
     private val originalSegmentDistances = mutableListOf<Double>()
     private var currentSegmentIndex = 0
@@ -31,16 +37,25 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
         val firstPoint = travelData.points.firstOrNull() ?: Vector()
         val spawnLocation = player.location.set(firstPoint.x, firstPoint.y, firstPoint.z)
 
+        blimp = player.world.spawn(spawnLocation, ArmorStand::class.java).apply {
+            customName(Component.text("PathFollowerBlimp"))
+            isCustomNameVisible = true
+            isInvulnerable = true
+            isVisible = false
+            isMarker = false
+            setGravity(false)
+        }
         entity = player.world.spawn(spawnLocation, ArmorStand::class.java).apply {
-            customName(Component.text("Path Follower"))
+            customName(Component.text("PathFollower"))
             isCustomNameVisible = true
             isInvulnerable = true
             isVisible = false
             isMarker = true
             setGravity(false)
             addPassenger(player)
+//            addPassenger(blimp)
         }
-        currentYaw = entity.location.yaw
+
 
         calculateOriginalDistances()
         generateSmoothedPath()
@@ -181,6 +196,11 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
 
         player.showTitle(title)
 
+        var modeledEntity = ModelEngineAPI.createModeledEntity(blimp)
+        var activeModel = ModelEngineAPI.createActiveModel("blimpppppp")
+        activeModel.animationHandler.forceStopAllAnimations()
+        modeledEntity.addModel(activeModel, true)
+
         if (!plugin.playersMounted.contains(player.uniqueId)) {
             plugin.playersMounted.set(player.uniqueId, entity)
         }
@@ -227,8 +247,9 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
                     return@scheduleSyncRepeatingTask
                 }
             }
+            blimp.teleport(player.location)
 
-            if (entity.passengers.isEmpty()) {
+            if (!entity.passengers.contains(player)) {
                 entity.addPassenger(player)
             }
         }, 0L, 1L)
@@ -246,13 +267,13 @@ class Traveler(private val plugin: UFastTravel, private val player: Player, priv
 
     fun remove() {
         stop()
-        entity.remove()
         if (plugin.entities.contains(entity)) {
             plugin.entities.remove(entity)
         }
+        entity.remove()
+        blimp.remove()
     }
 }
-
 
 // i am unsure which i wanna use but i think i am done with this class and have the bottom comment just in case
 /*

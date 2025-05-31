@@ -19,7 +19,6 @@ class PlayerGotDamagedListener(var plugin: UFastTravel ) : Listener {
             if (plugin.playersMounted.contains(event.entity.uniqueId)) {
                 plugin.playersMounted.get(event.entity.uniqueId)?.remove()
             }
-            plugin.logger.info(event.damageSource.damageType.key.toString())
         }
     }
 

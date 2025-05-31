@@ -6,16 +6,19 @@ maybe Make existing commands make sense maybe add tab completion
 /removepath [pathname]
 
 sometimes the Path Follower does not start following path
+maybe its bc the chunks are unloaded should check that out
 
 save player that started traveling in the config file so that when they rejoin they get tp'd to the start without loosing money
  */
 package me.uncertawn.uFastTravel
 
+import com.ticxo.modelengine.api.ModelEngineAPI
 import me.uncertawn.uFastTravel.command.CreatePathCommand
 import me.uncertawn.uFastTravel.command.DebugPathCommand
 import me.uncertawn.uFastTravel.command.EditPathCommand
 import me.uncertawn.uFastTravel.command.ListPathsCommand
 import me.uncertawn.uFastTravel.command.StartTravelCommand
+import me.uncertawn.uFastTravel.command.SummonDisplayBlimp
 import me.uncertawn.uFastTravel.command.TpToPointInPath
 import me.uncertawn.uFastTravel.listener.PlayerGotDamagedListener
 import org.bukkit.Bukkit
@@ -28,8 +31,21 @@ class UFastTravel : JavaPlugin() {
     var entities: MutableList<Entity> = mutableListOf()
     var playerTravellingPath: HashMap<UUID, String> = HashMap()
 
+    lateinit var modelEngineAPI: ModelEngineAPI
+
     var taskId = -1
     override fun onEnable() {
+        if (Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            logger.info("Model Engine found!")
+            modelEngineAPI = Bukkit.getPluginManager().getPlugin("ModelEngine") as ModelEngineAPI
+        } else {
+            logger.severe("Model Engine not found!")
+        }
+
+        Bukkit.getScheduler().runTaskLater(this, Runnable {
+            logger.info("Found models in ModelEngine: ${modelEngineAPI.modelRegistry.keys}")
+        }, 40)
+
         // Plugin startup logic
         getCommand("createpath")?.setExecutor(CreatePathCommand(this))
         getCommand("editpath")?.setExecutor(EditPathCommand(this))
@@ -37,6 +53,7 @@ class UFastTravel : JavaPlugin() {
         getCommand("starttravel")?.setExecutor(StartTravelCommand(this))
         getCommand("pathlist")?.setExecutor(ListPathsCommand(this))
         getCommand("tptopointinpath")?.setExecutor(TpToPointInPath(this))
+        getCommand("displayblimp")?.setExecutor(SummonDisplayBlimp(this))
 
         server.pluginManager.registerEvents(PlayerGotDamagedListener(this), this)
 
